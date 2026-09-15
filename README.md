@@ -39,7 +39,7 @@ npm install
 npm run dev
 ```
 
-[http://localhost:3000](http://localhost:3000) 에서 확인할 수 있습니다.
+https://helpmetodo.vercel.app/ 에서 확인할 수 있습니다.
 
 ## 참고
 
