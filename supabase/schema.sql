@@ -32,8 +32,11 @@ drop policy if exists "Users can update own profile" on public.profiles;
 create policy "Users can update own profile" on public.profiles
   for update using (id = auth.uid()) with check (id = auth.uid());
 
--- Generates an 8-character, human-typeable friend code (uppercase letters
--- and digits), retrying on the rare collision.
+-- Generates an 8-character, human-typeable friend code (uppercase hex),
+-- retrying on the rare collision. Uses only built-in functions (no
+-- pgcrypto) so it keeps working under a SECURITY DEFINER function's
+-- restricted search_path, where Supabase's pgcrypto (installed into the
+-- `extensions` schema, not `public`) would not be found.
 create or replace function public.generate_friend_code()
 returns text
 language plpgsql
@@ -43,8 +46,7 @@ declare
   tries int := 0;
 begin
   loop
-    candidate := upper(substr(encode(gen_random_bytes(6), 'base64'), 1, 8));
-    candidate := translate(candidate, '+/=lIO0', 'ABCDEFG');
+    candidate := upper(substr(md5(random()::text || clock_timestamp()::text), 1, 8));
     exit when not exists (select 1 from public.profiles where friend_code = candidate);
     tries := tries + 1;
     if tries > 20 then
