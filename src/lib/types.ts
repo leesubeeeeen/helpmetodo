@@ -22,3 +22,21 @@ export type NewCategory = Pick<Category, "name" | "color"> & {
 export type NewTodo = Pick<Todo, "title" | "date"> & {
   category_id: string | null;
 };
+
+export type Profile = {
+  id: string;
+  nickname: string;
+  friend_code: string;
+  created_at: string;
+};
+
+export type FriendshipStatus = "pending" | "accepted";
+
+export type Friendship = {
+  id: string;
+  requester_id: string;
+  addressee_id: string;
+  status: FriendshipStatus;
+  created_at: string;
+  responded_at: string | null;
+};
