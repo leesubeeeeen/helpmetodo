@@ -12,8 +12,9 @@ export default function SetupNotice() {
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key`}
       </pre>
       <p>
-        그리고 <code className="rounded bg-amber-100 px-1 py-0.5">supabase/schema.sql</code>{" "}
-        파일 내용을 Supabase SQL Editor에서 실행한 뒤, 개발 서버를 재시작하면 돼요.
+        그리고 <code className="rounded bg-amber-100 px-1 py-0.5">supabase/schema.sql</code>,{" "}
+        <code className="rounded bg-amber-100 px-1 py-0.5">supabase/routines.sql</code>{" "}
+        파일 내용을 차례로 Supabase SQL Editor에서 실행한 뒤, 개발 서버를 재시작하면 돼요.
       </p>
     </div>
   );

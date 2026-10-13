@@ -1,18 +1,29 @@
 "use client";
 
-import { formatDayTitle } from "@/lib/dateUtils";
-import type { Category, Todo } from "@/lib/types";
+import { formatDayTitle, getTodayKey } from "@/lib/dateUtils";
+import type { Category, Routine, Todo } from "@/lib/types";
 import { useMemo } from "react";
 import AddTodoForm from "./AddTodoForm";
+import RoutineSuggestionItem from "./RoutineSuggestionItem";
 import TodoItem from "./TodoItem";
 
 type Props = {
   selectedDate: string;
   todos: Todo[];
   categories: Category[];
+  routines: Routine[];
   onAdd: (title: string, categoryId: string | null) => void;
+  onAddFromRoutine: (routine: Routine) => void;
   onToggle: (id: string, completed: boolean) => void;
   onDelete: (id: string) => void;
+  onPostpone: (id: string) => void;
+};
+
+type Group = {
+  key: string;
+  category: Category | undefined;
+  todos: Todo[];
+  routines: Routine[];
 };
 
 const UNCATEGORIZED_KEY = "__none__";
@@ -21,37 +32,50 @@ export default function DayPanel({
   selectedDate,
   todos,
   categories,
+  routines,
   onAdd,
+  onAddFromRoutine,
   onToggle,
   onDelete,
+  onPostpone,
 }: Props) {
+  const dateObj = useMemo(() => new Date(`${selectedDate}T00:00:00`), [selectedDate]);
+  const isToday = selectedDate === getTodayKey();
+
+  // Routines scheduled for this weekday that haven't been added as a todo yet.
+  const pendingRoutines = useMemo(() => {
+    const weekday = dateObj.getDay();
+    const addedRoutineIds = new Set(todos.map((t) => t.routine_id));
+    return routines.filter(
+      (r) => r.weekdays.includes(weekday) && !addedRoutineIds.has(r.id)
+    );
+  }, [routines, todos, dateObj]);
+
   const groups = useMemo(() => {
-    const map = new Map<string, Todo[]>();
-    for (const todo of todos) {
-      const key = todo.category_id ?? UNCATEGORIZED_KEY;
-      const list = map.get(key) ?? [];
-      list.push(todo);
-      map.set(key, list);
-    }
-    const ordered: { key: string; category: Category | undefined; todos: Todo[] }[] =
-      [];
-    for (const category of categories) {
-      if (map.has(category.id)) {
-        ordered.push({ key: category.id, category, todos: map.get(category.id)! });
+    const map = new Map<string, Group>();
+    const groupFor = (categoryId: string | null) => {
+      const key = categoryId ?? UNCATEGORIZED_KEY;
+      let group = map.get(key);
+      if (!group) {
+        group = { key, category: undefined, todos: [], routines: [] };
+        map.set(key, group);
       }
+      return group;
+    };
+    for (const todo of todos) groupFor(todo.category_id).todos.push(todo);
+    for (const routine of pendingRoutines) groupFor(routine.category_id).routines.push(routine);
+
+    const ordered: Group[] = [];
+    for (const category of categories) {
+      const group = map.get(category.id);
+      if (group) ordered.push({ ...group, category });
     }
-    if (map.has(UNCATEGORIZED_KEY)) {
-      ordered.push({
-        key: UNCATEGORIZED_KEY,
-        category: undefined,
-        todos: map.get(UNCATEGORIZED_KEY)!,
-      });
-    }
+    const uncategorized = map.get(UNCATEGORIZED_KEY);
+    if (uncategorized) ordered.push(uncategorized);
     return ordered;
-  }, [todos, categories]);
+  }, [todos, pendingRoutines, categories]);
 
   const remaining = todos.filter((t) => !t.completed).length;
-  const dateObj = useMemo(() => new Date(`${selectedDate}T00:00:00`), [selectedDate]);
 
   return (
     <div className="flex max-h-[560px] flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -96,6 +120,15 @@ export default function DayPanel({
                   category={group.category}
                   onToggle={onToggle}
                   onDelete={onDelete}
+                  onPostpone={isToday && !todo.completed ? onPostpone : undefined}
+                />
+              ))}
+              {group.routines.map((routine) => (
+                <RoutineSuggestionItem
+                  key={`routine-${routine.id}`}
+                  routine={routine}
+                  category={group.category}
+                  onAdd={onAddFromRoutine}
                 />
               ))}
             </div>

@@ -1,4 +1,5 @@
 import {
+  addDays,
   addMonths,
   eachDayOfInterval,
   endOfMonth,
@@ -15,6 +16,23 @@ export const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 
 export function toDateKey(date: Date): string {
   return format(date, "yyyy-MM-dd");
+}
+
+// Weekdays in Monday-first order, as getDay() numbers, for weekday pickers.
+export const MONDAY_FIRST_WEEKDAYS = [1, 2, 3, 4, 5, 6, 0];
+
+export function formatWeekdays(weekdays: number[]): string {
+  return MONDAY_FIRST_WEEKDAYS.filter((d) => weekdays.includes(d))
+    .map((d) => WEEKDAY_LABELS[d])
+    .join("·");
+}
+
+export function getTodayKey(): string {
+  return toDateKey(new Date());
+}
+
+export function getTomorrowKey(): string {
+  return toDateKey(addDays(new Date(), 1));
 }
 
 export function getMonthGrid(monthAnchor: Date): Date[] {

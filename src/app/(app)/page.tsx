@@ -3,20 +3,31 @@
 import Calendar from "@/components/Calendar";
 import CategoryManager from "@/components/CategoryManager";
 import DayPanel from "@/components/DayPanel";
+import RoutineManager from "@/components/RoutineManager";
 import SetupNotice from "@/components/SetupNotice";
 import {
   createCategory,
+  createRoutine,
   createTodo,
   deleteCategory,
+  deleteRoutine,
   deleteTodo,
   fetchCategories,
+  fetchRoutines,
   fetchTodosInRange,
+  moveTodoToDate,
   toggleTodo,
   updateCategory,
 } from "@/lib/data";
-import { getMonthGrid, nextMonth, previousMonth, toDateKey } from "@/lib/dateUtils";
+import {
+  getMonthGrid,
+  getTomorrowKey,
+  nextMonth,
+  previousMonth,
+  toDateKey,
+} from "@/lib/dateUtils";
 import { isSupabaseConfigured } from "@/lib/supabaseClient";
-import type { Category, Todo } from "@/lib/types";
+import type { Category, Routine, Todo } from "@/lib/types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 export default function Home() {
@@ -24,6 +35,7 @@ export default function Home() {
   const [selectedDate, setSelectedDate] = useState(() => toDateKey(new Date()));
   const [categories, setCategories] = useState<Category[]>([]);
   const [todos, setTodos] = useState<Todo[]>([]);
+  const [routines, setRoutines] = useState<Routine[]>([]);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,12 +45,14 @@ export default function Home() {
 
   const loadData = useCallback(async () => {
     try {
-      const [categoryRows, todoRows] = await Promise.all([
+      const [categoryRows, todoRows, routineRows] = await Promise.all([
         fetchCategories(),
         fetchTodosInRange(rangeStart, rangeEnd),
+        fetchRoutines(),
       ]);
       setCategories(categoryRows);
       setTodos(todoRows);
+      setRoutines(routineRows);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "데이터를 불러오지 못했어요.");
@@ -68,6 +82,33 @@ export default function Home() {
       setTodos((prev) => [...prev, created]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "할 일을 추가하지 못했어요.");
+    }
+  }
+
+  async function handleAddTodoFromRoutine(routine: Routine) {
+    try {
+      const created = await createTodo({
+        title: routine.title,
+        date: selectedDate,
+        category_id: routine.category_id,
+        routine_id: routine.id,
+      });
+      setTodos((prev) => [...prev, created]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "루틴 할 일을 추가하지 못했어요.");
+    }
+  }
+
+  async function handlePostponeTodo(id: string) {
+    const tomorrow = getTomorrowKey();
+    setTodos((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, date: tomorrow } : t))
+    );
+    try {
+      await moveTodoToDate(id, tomorrow);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "내일로 미루지 못했어요.");
+      loadData();
     }
   }
 
@@ -123,10 +164,43 @@ export default function Home() {
     setTodos((prev) =>
       prev.map((t) => (t.category_id === id ? { ...t, category_id: null } : t))
     );
+    setRoutines((prev) =>
+      prev.map((r) => (r.category_id === id ? { ...r, category_id: null } : r))
+    );
     try {
       await deleteCategory(id);
     } catch (e) {
       setError(e instanceof Error ? e.message : "카테고리를 삭제하지 못했어요.");
+      loadData();
+    }
+  }
+
+  async function handleAddRoutine(
+    title: string,
+    categoryId: string | null,
+    weekdays: number[]
+  ) {
+    try {
+      const created = await createRoutine({
+        title,
+        category_id: categoryId,
+        weekdays,
+      });
+      setRoutines((prev) => [...prev, created]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "루틴을 추가하지 못했어요.");
+    }
+  }
+
+  async function handleDeleteRoutine(id: string) {
+    setRoutines((prev) => prev.filter((r) => r.id !== id));
+    setTodos((prev) =>
+      prev.map((t) => (t.routine_id === id ? { ...t, routine_id: null } : t))
+    );
+    try {
+      await deleteRoutine(id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "루틴을 삭제하지 못했어요.");
       loadData();
     }
   }
@@ -173,15 +247,24 @@ export default function Home() {
               selectedDate={selectedDate}
               todos={todosForSelectedDate}
               categories={categories}
+              routines={routines}
               onAdd={handleAddTodo}
+              onAddFromRoutine={handleAddTodoFromRoutine}
               onToggle={handleToggleTodo}
               onDelete={handleDeleteTodo}
+              onPostpone={handlePostponeTodo}
             />
             <CategoryManager
               categories={categories}
               onAdd={handleAddCategory}
               onDelete={handleDeleteCategory}
               onRename={handleRenameCategory}
+            />
+            <RoutineManager
+              routines={routines}
+              categories={categories}
+              onAdd={handleAddRoutine}
+              onDelete={handleDeleteRoutine}
             />
           </div>
         </div>

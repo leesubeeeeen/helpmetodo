@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient";
-import type { Category, NewCategory, NewTodo, Todo } from "./types";
+import type { Category, NewCategory, NewRoutine, NewTodo, Routine, Todo } from "./types";
 
 async function getCurrentUserId(): Promise<string> {
   const {
@@ -100,7 +100,44 @@ export async function updateTodoTitle(id: string, title: string): Promise<Todo> 
   return data;
 }
 
+export async function moveTodoToDate(id: string, date: string): Promise<Todo> {
+  const { data, error } = await supabase
+    .from("todos")
+    .update({ date })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 export async function deleteTodo(id: string): Promise<void> {
   const { error } = await supabase.from("todos").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function fetchRoutines(): Promise<Routine[]> {
+  const userId = await getCurrentUserId();
+  const { data, error } = await supabase
+    .from("routines")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function createRoutine(routine: NewRoutine): Promise<Routine> {
+  const { data, error } = await supabase
+    .from("routines")
+    .insert(routine)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteRoutine(id: string): Promise<void> {
+  const { error } = await supabase.from("routines").delete().eq("id", id);
   if (error) throw error;
 }
