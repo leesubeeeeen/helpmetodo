@@ -162,3 +162,101 @@ export async function fetchFriendTodosInRange(
   if (error) throw error;
   return data ?? [];
 }
+
+const AVATAR_BUCKET = "avatars";
+const AVATAR_SIZE = 256;
+
+export async function updateMyProfile(
+  updates: Partial<Pick<Profile, "nickname" | "bio" | "avatar_url">>
+): Promise<Profile> {
+  const userId = await getCurrentUserId();
+  const { data, error } = await supabase
+    .from("profiles")
+    .update(updates)
+    .eq("id", userId)
+    .select()
+    .single();
+  if (error) {
+    // profiles_nickname_lower_idx: nickname is unique (case-insensitive).
+    if (error.code === "23505") throw new Error("이미 사용 중인 닉네임이에요.");
+    throw error;
+  }
+  return data;
+}
+
+// Center-crops and downsizes the picked image to a small square JPEG so
+// uploads stay tiny regardless of how large the original photo is.
+async function toAvatarBlob(file: File): Promise<Blob> {
+  const bitmap = await createImageBitmap(file);
+  const side = Math.min(bitmap.width, bitmap.height);
+  const canvas = document.createElement("canvas");
+  canvas.width = AVATAR_SIZE;
+  canvas.height = AVATAR_SIZE;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("이미지를 처리하지 못했어요.");
+  ctx.drawImage(
+    bitmap,
+    (bitmap.width - side) / 2,
+    (bitmap.height - side) / 2,
+    side,
+    side,
+    0,
+    0,
+    AVATAR_SIZE,
+    AVATAR_SIZE
+  );
+  bitmap.close();
+  return new Promise((resolve, reject) =>
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error("이미지를 처리하지 못했어요."))),
+      "image/jpeg",
+      0.85
+    )
+  );
+}
+
+export async function uploadMyAvatar(file: File): Promise<Profile> {
+  const userId = await getCurrentUserId();
+  const blob = await toAvatarBlob(file);
+  const fileName = `avatar-${Date.now()}.jpg`;
+  const path = `${userId}/${fileName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(AVATAR_BUCKET)
+    .upload(path, blob, { contentType: "image/jpeg" });
+  if (uploadError) throw uploadError;
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path);
+  const profile = await updateMyProfile({ avatar_url: publicUrl });
+  await removeAvatarFiles(userId, fileName);
+  return profile;
+}
+
+export async function removeMyAvatar(): Promise<Profile> {
+  const userId = await getCurrentUserId();
+  const profile = await updateMyProfile({ avatar_url: null });
+  await removeAvatarFiles(userId);
+  return profile;
+}
+
+// Best-effort cleanup of previous avatar files; a failure here shouldn't
+// fail the profile change itself.
+async function removeAvatarFiles(userId: string, keepFileName?: string) {
+  const { data } = await supabase.storage.from(AVATAR_BUCKET).list(userId);
+  const stale = (data ?? [])
+    .filter((f) => f.name !== keepFileName)
+    .map((f) => `${userId}/${f.name}`);
+  if (stale.length > 0) {
+    await supabase.storage.from(AVATAR_BUCKET).remove(stale);
+  }
+}
+
+// Fired on window after the user edits their profile, so the NavBar (which
+// lives outside the profile page) can refresh its avatar/nickname.
+export const PROFILE_UPDATED_EVENT = "profile-updated";
+
+export function notifyProfileUpdated(profile: Profile) {
+  window.dispatchEvent(new CustomEvent<Profile>(PROFILE_UPDATED_EVENT, { detail: profile }));
+}

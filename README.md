@@ -21,8 +21,9 @@
 2. 프로젝트의 **SQL Editor**에서 [`supabase/schema.sql`](supabase/schema.sql) 내용을 실행합니다.
    (`profiles`, `friendships`, `categories`, `todos` 테이블과 회원가입 시 프로필을 자동
    생성하는 트리거, 소유자/친구 권한을 구분하는 RLS 정책이 함께 만들어집니다.)
-   이어서 [`supabase/routines.sql`](supabase/routines.sql)도 실행해 루틴 기능용 테이블을 추가합니다.
-   (이미 `schema.sql`을 실행해 사용 중인 DB라면 `routines.sql`만 실행하면 됩니다.
+   이어서 [`supabase/routines.sql`](supabase/routines.sql)과 [`supabase/profile.sql`](supabase/profile.sql)도
+   실행해 루틴 테이블과 프로필 사진/소개글(`avatars` 스토리지 버킷 포함)을 추가합니다.
+   (이미 `schema.sql`을 실행해 사용 중인 DB라면 이 두 파일만 실행하면 됩니다.
    `schema.sql`을 다시 실행하면 기존 할 일/카테고리가 지워지니 주의하세요.)
 3. Supabase 대시보드의 **Project Settings → API**에서 `Project URL`과 `anon public` 키를 확인합니다.
 4. (선택) **Authentication → Providers → Email**에서 "Confirm email"을 끄면 가입 즉시

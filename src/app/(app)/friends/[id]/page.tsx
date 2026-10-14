@@ -1,5 +1,6 @@
 "use client";
 
+import Avatar from "@/components/Avatar";
 import Calendar from "@/components/Calendar";
 import { fetchFriendCategories, fetchFriendProfile, fetchFriendTodosInRange } from "@/lib/friends";
 import { getMonthGrid, nextMonth, previousMonth, toDateKey } from "@/lib/dateUtils";
@@ -88,9 +89,13 @@ export default function FriendTodosPage() {
             <Link href="/friends" className="text-sm text-slate-400 hover:text-slate-600">
               ← 친구 목록
             </Link>
-            <h1 className="text-xl font-bold text-slate-800">
-              {profile ? `${profile.nickname}님의 할 일` : "할 일"}
-            </h1>
+            {profile && <Avatar profile={profile} size={36} />}
+            <div>
+              <h1 className="text-xl font-bold text-slate-800">
+                {profile ? `${profile.nickname}님의 할 일` : "할 일"}
+              </h1>
+              {profile?.bio && <p className="text-xs text-slate-500">{profile.bio}</p>}
+            </div>
           </div>
           {error && (
             <span className="rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-500">

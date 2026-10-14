@@ -12,6 +12,7 @@ import {
   type Friend,
   type FriendRequest,
 } from "@/lib/friends";
+import Avatar from "@/components/Avatar";
 import type { Profile } from "@/lib/types";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -137,16 +138,25 @@ export default function FriendsPage() {
 
         {profile && (
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-sm text-slate-500">
-              내 닉네임: <span className="font-medium text-slate-700">{profile.nickname}</span>
-            </p>
-            <p className="mt-1 text-sm text-slate-500">
-              내 회원 코드:{" "}
-              <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono font-medium text-slate-700">
-                {profile.friend_code}
-              </span>
-            </p>
-            <p className="mt-2 text-xs text-slate-400">
+            <div className="flex items-center gap-3">
+              <Avatar profile={profile} size={44} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-slate-700">{profile.nickname}</p>
+                <p className="mt-0.5 text-sm text-slate-500">
+                  회원 코드{" "}
+                  <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono font-medium text-slate-700">
+                    {profile.friend_code}
+                  </span>
+                </p>
+              </div>
+              <Link
+                href="/profile"
+                className="flex-shrink-0 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-200"
+              >
+                프로필 편집
+              </Link>
+            </div>
+            <p className="mt-3 text-xs text-slate-400">
               친구에게 닉네임이나 회원 코드를 알려주면 나를 찾아 친구 요청을 보낼 수 있어요.
             </p>
           </div>
@@ -175,14 +185,17 @@ export default function FriendsPage() {
               {searchResult === null ? (
                 <p className="text-sm text-slate-400">일치하는 사용자를 찾지 못했어요.</p>
               ) : (
-                <div className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2.5">
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">
-                      {searchResult.nickname}
-                    </p>
-                    <p className="font-mono text-xs text-slate-400">
-                      {searchResult.friend_code}
-                    </p>
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 px-3 py-2.5">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Avatar profile={searchResult} size={36} />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-slate-700">
+                        {searchResult.nickname}
+                      </p>
+                      <p className="font-mono text-xs text-slate-400">
+                        {searchResult.friend_code}
+                      </p>
+                    </div>
                   </div>
                   {isAlreadyRelated(searchResult.id) ? (
                     <span className="text-xs text-slate-400">이미 친구이거나 요청 중이에요</span>
@@ -209,7 +222,10 @@ export default function FriendsPage() {
                   key={r.id}
                   className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2.5"
                 >
-                  <span className="text-sm text-slate-700">{r.profile.nickname}</span>
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <Avatar profile={r.profile} size={28} />
+                    <span className="truncate text-sm text-slate-700">{r.profile.nickname}</span>
+                  </span>
                   <div className="flex gap-1.5">
                     <button
                       onClick={() => handleAccept(r.id)}
@@ -239,7 +255,10 @@ export default function FriendsPage() {
                   key={r.id}
                   className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2.5"
                 >
-                  <span className="text-sm text-slate-700">{r.profile.nickname}</span>
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <Avatar profile={r.profile} size={28} />
+                    <span className="truncate text-sm text-slate-700">{r.profile.nickname}</span>
+                  </span>
                   <button
                     onClick={() => handleCancel(r.id)}
                     className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-200"
@@ -257,14 +276,27 @@ export default function FriendsPage() {
           {friends.length === 0 ? (
             <p className="text-sm text-slate-400">아직 친구가 없어요.</p>
           ) : (
-            <ul className="space-y-1.5">
+            <ul className="space-y-2">
               {friends.map((f) => (
                 <li
                   key={f.friendshipId}
-                  className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2.5"
+                  className="flex items-center gap-3 rounded-xl border border-slate-100 px-3 py-3"
                 >
-                  <span className="text-sm text-slate-700">{f.profile.nickname}</span>
-                  <div className="flex gap-1.5">
+                  <Avatar profile={f.profile} size={44} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-slate-700">
+                      {f.profile.nickname}
+                    </p>
+                    <p
+                      className={[
+                        "mt-0.5 line-clamp-2 whitespace-pre-line text-xs",
+                        f.profile.bio ? "text-slate-500" : "text-slate-300",
+                      ].join(" ")}
+                    >
+                      {f.profile.bio || "소개가 아직 없어요."}
+                    </p>
+                  </div>
+                  <div className="flex flex-shrink-0 gap-1.5">
                     <Link
                       href={`/friends/${f.profile.id}`}
                       className="rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-100"

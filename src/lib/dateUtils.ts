@@ -57,6 +57,11 @@ export function previousMonth(monthAnchor: Date): Date {
   return subMonths(monthAnchor, 1);
 }
 
+// "YYYY-MM", which every "YYYY-MM-DD" date key in that month starts with.
+export function toMonthKey(date: Date): string {
+  return format(date, "yyyy-MM");
+}
+
 export function formatMonthTitle(monthAnchor: Date): string {
   return format(monthAnchor, "yyyy년 M월");
 }

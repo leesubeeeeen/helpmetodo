@@ -7,6 +7,7 @@ import {
   isCurrentMonth,
   isDateToday,
   toDateKey,
+  toMonthKey,
 } from "@/lib/dateUtils";
 import type { Todo } from "@/lib/types";
 import { useMemo } from "react";
@@ -43,6 +44,17 @@ export default function Calendar({
     return map;
   }, [todos]);
 
+  const monthSummary = useMemo(() => {
+    const monthKey = toMonthKey(monthAnchor);
+    const inMonth = todos.filter((t) => t.date.startsWith(monthKey));
+    return {
+      total: inMonth.length,
+      completed: inMonth.filter((t) => t.completed).length,
+    };
+  }, [todos, monthAnchor]);
+  const completionRate =
+    monthSummary.total > 0 ? Math.round((monthSummary.completed / monthSummary.total) * 100) : 0;
+
   return (
     <div className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
@@ -70,6 +82,32 @@ export default function Calendar({
           >
             <ChevronRight />
           </button>
+        </div>
+      </div>
+
+      <div className="mb-4 rounded-xl bg-slate-50 px-3.5 py-3">
+        <div className="mb-2 flex items-baseline justify-between">
+          <span className="text-xs font-medium text-slate-500">이번 달 완료한 일</span>
+          <span className="text-sm text-slate-500">
+            <span className="text-lg font-bold text-slate-800">{monthSummary.completed}</span>
+            <span className="ml-0.5">/ {monthSummary.total}개</span>
+            {monthSummary.total > 0 && (
+              <span className="ml-2 text-xs font-medium text-emerald-600">{completionRate}%</span>
+            )}
+          </span>
+        </div>
+        <div
+          className="h-1.5 overflow-hidden rounded-full bg-slate-200"
+          role="progressbar"
+          aria-valuenow={completionRate}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="이번 달 완료율"
+        >
+          <div
+            className="h-full rounded-full bg-emerald-400 transition-[width]"
+            style={{ width: `${completionRate}%` }}
+          />
         </div>
       </div>
 

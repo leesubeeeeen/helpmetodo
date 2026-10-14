@@ -39,6 +39,8 @@ export type Profile = {
   id: string;
   nickname: string;
   friend_code: string;
+  avatar_url: string | null;
+  bio: string;
   created_at: string;
 };
 
